@@ -1,0 +1,98 @@
+ssh okd@192.168.1.192
+
+frequently using command:
+# vagrant halt     [shutdown server]
+# vagrant up       [start server]
+# vagrant destroy  [delete server]
+
+
+______________________________________
+puppet installation on centos7 # how to install vagrant on centos 7
+https://phoenixnap.com/kb/how-to-install-vagrant-on-centos-7
+vagrant -v
+-----------------------------------
+puppet resource user bob
+puppet resource user bob ensure=present
+
+-----------------------------------
+sudo su
+vagrant status
+# use vagrant ssh on where the vagrant file locket
+vagrant ssh puppet
+vagrant ssh agent
+
+on agent system 
+yum install puppet-agent
+
+on puppet server 
+yum install puppetserver
+
+puppet installed under 
+cd /opt/puppetlabs
+
+server side
+ls /opt/puppetlabs/puppet/bin/ # puppet commands
+
+
+puppet -V
+4.10.12
+
+cat ~/.bashrc
+export PATH=$PATH:/opt/puppetlabs/puppet/bin  #check thist on server side
+____________________________
+puppet resources:
+
+item importentc
+or
+declarative state
+
+Resource types
+-package
+-user
+-group
+-service
+-file
+
+Resourve Abstraction Layer (RAL)
+-provides abstraction from the implementation details
+-we declare the WHAT, the RAL decides the HOW
+-The point where puppet interacts with your OS
+
+Attributes:
+-Resource types have a number of configurable attributes
+-Manage things like UID,GID, Home Directory, Shell
+-The puppet describe command shows what attributes a type supports
+
+
+
+puppet resource user bob
+puppet resource user bob ensure=present
+puppet resource user bob ensure=present uid=9999
+puppet resource user bob # show bob resource and pull back to me 
+puppet describe user|more
+puppet resource group sysadmins ensure=present
+puppet resource user bob ensure=present groups=sysadmins
+grep sysadmins /etc/group
+
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+commands: # issue is secure boot off # on my system bios F2 
+systemctl status vboxdrv.service
+
+virtual box not started issue
+
+Error:
+The vboxdrv kernel module is not loaded. Either there is no module
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Git error:
+error: src refspec refs/heads/master does not match any.
+error: failed to push some refs to 'https://github.com/gif-git/puppet.git'
+
+ 2015  git clone https://github.com/gif-git/puppet.git
+ 2022  git status
+ 2023  git add .
+ 2024  git commit -m "first commit"
+ 2025  git push 
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
