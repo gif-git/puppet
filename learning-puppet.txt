@@ -4,9 +4,26 @@ frequently using command:
 # vagrant halt     [shutdown server]
 # vagrant up       [start server]
 # vagrant destroy  [delete server]
+-_____________________________________
+:4,7s/two/VIM # search and replace on only 4 to 7th line
+:%s/two/VIM # search and replace on enter document (two to VIM)
+:%s/two/VIM/g # search and replace on enter document (two to VIM)
+g # globlely (all occurrences)
 
+:set number
+:'a,.s/^/
+:22,29s/^/  /  # :4,13s/^/  /  # indent two white spaces
+
+#puppet config print module path
+cd /etc/puppetlabs/code/environments/production/modules/sysadmins/manifests
+[root@puppet manifests]# cat init.pp 
+cd /
+#puppet apply -e 'include sysadmins'
+tree sysadmins
 
 ______________________________________
+https://www.youtube.com/watch?v=MkdwfqCwX3A&ab_channel=theurbanpenguin # vim indent space
+9:51
 puppet installation on centos7 # how to install vagrant on centos 7
 https://phoenixnap.com/kb/how-to-install-vagrant-on-centos-7
 vagrant -v
@@ -14,7 +31,232 @@ vagrant -v
 puppet resource user bob
 puppet resource user bob ensure=present
 
+vagrant ssh puppet
+vagrant ssh agent
+
+____________________________________
+6 
+server & agent
+Puppet agent
+-Puppet agent runs as a daemon checking in periodically # every 30mins
+-We can trigger a one off puppet run using puppet agent -t
+ -> -o --onetime Run once and exit
+ -> -n --nodaemonize Run in the Foreground
+ -> -v --verbose Run in verbose mode
+ -> -t --test lmplies -onv
+ -> --noop Compare catalog but don't apply any changes
+
+Authentication
+ -Agent connects to server over authenticated SSL
+ -Retrives and applies configuration
+
+SSL
+-puppet server is a certificate authority(CA)
+-The agent generates an SSL signing request (CSR) and sends it to the server
+-Server signs and returns to the cert to the agent
+-Puppet uses the certname to identify hosts
+-Agent verifies the server SSL cert contains the certname
+-We can use the puppet cert command to manage certificates
+__________
+change a puppet memory size:
+vim /etc/sysconfig/puppetserver
+JAVA_ARGS="-Xms2g -Xmx2g -XX:MaxPermSize=256m"	# if you want to change the memory setting to 2GB change to -Xms1g -Xmx1g
+systemctl start puppetserver
+___________
+on server side we need to start puppet:
+systemctl start puppetserver
+
+client side
+puppet agent -t
+
+server side:
+puppet cert --list
+puppet cert --sign agent.localdomain
+puppet cert --list -all # this command will show the all added cert with the (+ sign indicate this certificate already added)
+puppet cert --print puppet.localdomain|more
+
+
+client side:
+puppet agent -t
+vim /etc/hosts
+172.28.128.3 puppet configurator
+puppet agent -t --server puppet
+puppet agent -t --server congigurator 
+
+Server & agent 
+Common ssl issues
+-Clocks out of sync.Running NTP is advised
+-Certname mismatch betwee servers and agents
+-Agent has been rebuilt
+-To overcome SSL issues, certs must be removed from both the agent and the server
+#puppet have time in same on server and agent
+
+certs must be removed from both the agent and the server
+server side:
+puppet cert clean agent.localdomain
+client side:
+puppet config print ssldir
+cd /etc/puppetlabs/puppet/ssl
+rm -rf *
+
+Server & Agent
+Facter
+-facter gathers a wide variety of information about the agent node
+-puppet can use there facts to determine how to configure resources
+-easily extendable to add your own facts
+-Puppet agent sends facts to the server on every run
+-We can use the command facter to view them
+
+facter 
+facter operatingsystem
+facter osfamily
+
+A pupper run
+
+server  <- ssl     -> agent
+	<- facts 
+	   catalog ->
+	<- report 
+
+Catalog
+-Contains all managed resources and the state they should be in
+-Puppet agent uses the RAL to compare running state to catalog
+-changes are enforced where drift is detected
+
+Classification
+-When an authenticated agent checks in, it is classified
+-Puppet identifies which classes should be applied
+-Catalog is compiled
+
+
+
+
+
+------------------------------------
+:set number
+:'a,.s/^/
+:22,29s/^/  /  # :4,13s/^/  /  # indent two white spaces
+5
+Puppet DSL
+The puppet language
+-A declarative syntax
+-Readable and easy to understand
+-'Infrastructure as code'
+
+resource Declarations
+-the resource type that we are managing
+-The identifying name of the resource
+-Attributes that we want to manage
+
+type { 'title':
+  attribute => 'value',
+  attribute => 'value',
+  attribute => 'value',	
+}
+
+user { 'bob':
+  ensure => present,
+  uid    => '9999'
+  groups => 'sysadmins',
+}
+
+Manifests
+-Resource declarations are written in manifests files with .pp extension
+-We can user the puppet apply command apply a manifest file
+-Resources must be unique, you cannot define two states for the same resource
+
+Classes 
+-Classes provide re-usable configuration models
+-Singleton
+-Model configuration by grouping together resources
+-apply the class to instantiate the configuration
+
+Ex: webserver:
+Package, file, user, service
+# in class we can group all to gether
+webserver --> node
+
+Classes 
+-To define a class
+class webserver {
+  ....
+}
+
+Classes
+-A class must be declared for it's resources to be instantiated
+-To declare a class>>>>
+
+include webserver
+
+class { 'webserver': }
+
+include 
+
+Modules
+-Classes are contained within modules
+-modules also contain
+ -file servinf
+ -puppet estensions
+-specific filesystem layout under the modulepath
+
+Modules
+-we can use the puppet config print command to get the modulepath
+-A module is installed in <modulepath>/<modulename>
+
+/etc/puppetlabs/code/environments/production/modules
+  -webserver
+
+-classes are stored in a folder called manifests/
+-The base class for the module is saved in a file called init.pp
+	.
+	-->webserver
+	   -->manifests
+	      ---->init.pp
+-we can run arbitrary puppet code with puppet apply -e 'code'
+
+#puppet config print module path
+output:- /etc/puppetlabs/code/environments/production/modules:/etc/puppetlabs/code/modules:/opt/puppetlabs/puppet/modules
+
+cd /etc/puppetlabs/code/environments/production/modules/sysadmins/manifests
+[root@puppet manifests]# cat init.pp 
+class sysadmins {
+
+  group { 'sysadmins':
+    ensure => present,
+  }
+  
+  user { 'bob':
+    ensure => present,
+    uid    => '9999',
+    groups => 'sysadmins',
+  }
+  user { 'susan':
+    ensure => present,
+    uid    => '9998',
+    groups => 'sysadmins',
+  }
+  user { 'peter':
+    ensure => present,
+    uid    => '9997',
+    groups => 'sysadmins',
+  }
+}
+
+cd /
+#puppet apply -e 'include sysadmins'
+
+cd /etc/puppetlabs/code/environments/production/modules
+[root@puppet modules]# tree sysadmins/
+sysadmins/
+`-- manifests
+    `-- init.pp
+
+1 directory, 1 file
+[root@puppet modules]# 
+
+
 -----------------------------------
+4
 sudo su
 vagrant status
 # use vagrant ssh on where the vagrant file locket
@@ -38,7 +280,7 @@ puppet -V
 4.10.12
 
 cat ~/.bashrc
-export PATH=$PATH:/opt/puppetlabs/puppet/bin  #check thist on server side
+export PATH=$PATH:/opt/puppetlabs/puppet/bin  #check this on server side
 ____________________________
 puppet resources:
 
@@ -84,6 +326,7 @@ virtual box not started issue
 
 Error:
 The vboxdrv kernel module is not loaded. Either there is no module
+
 
 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 Git error:
